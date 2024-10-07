@@ -19,6 +19,7 @@ struct Charactor
 	float height;
 	float velocity;
 	float gravity;
+	float jump;
 };
 
 float length = 0.0f;
@@ -30,10 +31,14 @@ void PlayerMove(float y, float speed)
 
 void Jump(float y, float jump)
 {
-	y = -jump;
+	y -= jump;
 }
 
-
+void Grabity(float velocity, float gravity, float posy)
+{
+	velocity += gravity;
+	posy += velocity;
+}
 
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
@@ -53,7 +58,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	player.gravity = 0.8f;
 	player.height = 64.0f;
 	player.wide = 64.0f;
+	player.jump = 20.0f;
 
+	//int isSpacePushCount = 0;
 
 	// ウィンドウの×ボタンが押されるまでループ
 	while (Novice::ProcessMessage() == 0) {
@@ -67,9 +74,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 		/// ↓更新処理ここから
 		///
-		if (keys[DIK_SPACE] && !preKeys[DIK_SPACE])
+		if (keys[DIK_SPACE] && preKeys[DIK_SPACE] ==0)
 		{
-			Jump()
+			Jump(player.pos.y, player.jump);
 		}
 		///
 		/// ↑更新処理ここまで
@@ -78,6 +85,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 		/// ↓描画処理ここから
 		///
+		
+		Novice::DrawBox(static_cast<int>(player.pos.x), int(player.pos.y), static_cast<int>(player.wide), static_cast<int>(player.height), 0.0f, WHITE, kFillModeSolid);
 
 		///
 		/// ↑描画処理ここまで
