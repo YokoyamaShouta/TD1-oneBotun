@@ -20,7 +20,21 @@ struct Charactor
 	float velocity;
 	float gravity;
 	float jumpPower;
+	int shotCoolTime;
 	bool isJumping;
+	bool isHit;
+	bool isAlive;
+};
+
+struct Bullet
+{
+	Vector2 pos;
+	float speed;
+	float wide;
+	float height;
+	float radius;
+	bool isHit;
+	bool isShot;
 };
 
 void Jump(Charactor& player)
@@ -31,13 +45,44 @@ void Jump(Charactor& player)
 	}
 }
 
+Bullet playerBullet[10];
+
+void BulletShot(Charactor& player)
+{
+	if (player.shotCoolTime <= 0)
+	{
+		for (int i = 0; i < 10; i++)
+		{
+			if (!playerBullet[i].isShot)
+			{
+				playerBullet[i].isShot = true;
+				playerBullet[i].pos.x = player.pos.x;
+				playerBullet[i].pos.y = player.pos.y;
+				player.shotCoolTime = 20;
+				break;
+			}
+		}
+	}
+}
+
+void BulletMove()
+{
+	for (int i = 0; i < 10; i++)
+	{
+		if (playerBullet[i].isShot)
+		{
+			playerBullet[i].pos.x += playerBullet[i].speed;
+		}
+	}
+}
+
 void ApplyGravity(Charactor& player)
 {
 	player.velocity += player.gravity;
 	player.pos.y += player.velocity;
     //(Y座標600を地面とした場合)
-	if (player.pos.y >= 600.0f) {
-		player.pos.y = 600.0f;
+	if (player.pos.y + player.height >= 600.0f) {
+		player.pos.y = 600.0f - player.height;
 		player.isJumping = false; // 地面に着地したのでジャンプ状態を解除
 		player.velocity = 0.0f;   // 着地時に速度をリセット
 	}
@@ -55,7 +100,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 	//プレイヤーの初期化変数
 	Charactor player;
-	player.pos.x = 64.0f;
+	player.pos.x = 300.0f;
 	player.pos.y = 600.0f;
 	player.velocity = 0.0f;
 	player.gravity = 0.8f;
@@ -64,6 +109,39 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	player.jumpPower = 20.0f;
 	player.isJumping = false;
 	player.speed = 10.0f;
+	player.shotCoolTime = 20;
+
+	for (int i = 0; i < 10; i++)
+	{
+		playerBullet[i].pos.x = player.pos.x;
+		playerBullet[i].pos.y = player.pos.y;
+		playerBullet[i].height = 32.0f;
+		playerBullet[i].wide = 32.0f;
+		playerBullet[i].height = 32.0f;
+		playerBullet[i].radius = 32.0f;
+		playerBullet[i].speed = 10.0f;
+		playerBullet[i].isHit = false;
+	}
+
+	//王様の初期化変数
+	Charactor king;
+	king.pos.x = 64.0f;
+	king.pos.y = 536.0f;
+	king.velocity = 0.0f;
+	king.height = 64.0f;
+	king.wide = 64.0f;
+	king.speed = 10.0f;
+
+	//float scrollX = 0.0f;
+	//float scrollMax = 3840.0f;
+
+	enum MAPCHANGE
+	{
+		TITLE,
+		STAGE1,
+		STAGE2,
+		STAGE3,
+	};
 
 	// ウィンドウの×ボタンが押されるまでループ
 	while (Novice::ProcessMessage() == 0) {
@@ -85,10 +163,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			player.pos.x += player.speed;
 		}
 
+
+
 		// スペースキーが押されたらジャンプ
-		if (keys[DIK_SPACE] && preKeys[DIK_SPACE] == 0)
+		if (keys[DIK_SPACE] && !preKeys[DIK_SPACE])
 		{
 			Jump(player);
+
+			if (keys[DIK_SPACE] && !preKeys[DIK_SPACE])
+			{
+				BulletShot(player);
+			}
 		}
 
 		// 重力の適用
@@ -103,6 +188,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// 
 		
 		Novice::DrawBox(int(player.pos.x), int(player.pos.y), int(player.wide), int(player.height), 0.0f, WHITE, kFillModeSolid);
+		Novice::DrawBox(int(king.pos.x), int(king.pos.y), int(king.wide), int(king.height), 0.0f, RED, kFillModeSolid);
+
+		for (int i = 0; i < 10; i++)
+		{
+			if (playerBullet[i].isShot)
+			{
+				Novice::DrawEllipse(int(playerBullet[i].pos.x), int(playerBullet[i].pos.y), 10, 10, 0.0f, BLUE, kFillModeSolid);
+			}
+		}
+
+		Novice::DrawLine(0, 600, 1280, 600, RED);
 
 		///
 		/// ↑描画処理ここまで
