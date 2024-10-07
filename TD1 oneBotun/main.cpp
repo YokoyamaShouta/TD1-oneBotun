@@ -2,7 +2,7 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 
-const char kWindowTitle[] = "GC1B_14_ヨコヤマ_ショウタ_タイトル";
+const char kWindowTitle[] = "防人の冒険記";
 
 struct Vector2
 {
