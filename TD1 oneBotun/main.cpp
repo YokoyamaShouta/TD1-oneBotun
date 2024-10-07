@@ -2,7 +2,7 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 
-const char kWindowTitle[] = "GC1B_14_ヨコヤマ_ショウタ_タイトル";
+const char kWindowTitle[] = "防人の冒険記";
 
 struct Vector2
 {
@@ -22,22 +22,10 @@ struct Charactor
 	float jump;
 };
 
-float length = 0.0f;
-
-void PlayerMove(float y, float speed)
-{
-	y -= speed;
-}
-
-void Jump(float y, float jump)
-{
-	y -= jump;
-}
-
-void Grabity(float velocity, float gravity, float posy)
+void Grabity(float velocity, float gravity, Vector2 posY)
 {
 	velocity += gravity;
-	posy += velocity;
+	posY += velocity;
 }
 
 // Windowsアプリでのエントリーポイント(main関数)
@@ -74,9 +62,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 		/// ↓更新処理ここから
 		///
-		if (keys[DIK_SPACE] && preKeys[DIK_SPACE] ==0)
+		if (keys[DIK_SPACE] && !preKeys[DIK_SPACE])
 		{
-			Jump(player.pos.y, player.jump);
+
 		}
 		///
 		/// ↑更新処理ここまで
@@ -87,6 +75,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 		
 		Novice::DrawBox(static_cast<int>(player.pos.x), int(player.pos.y), static_cast<int>(player.wide), static_cast<int>(player.height), 0.0f, WHITE, kFillModeSolid);
+		Novice::ScreenPrintf(10, 10, "%d", keys[DIK_SPACE]);
 
 		///
 		/// ↑描画処理ここまで
