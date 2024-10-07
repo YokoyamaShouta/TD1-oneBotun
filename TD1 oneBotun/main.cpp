@@ -166,10 +166,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
             }
         }
 
-        
-          BulletMove();
-            
-        
+		
+		BulletMove();
+			
 
         // 重力の適用
         ApplyGravity(player);
