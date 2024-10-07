@@ -178,13 +178,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			}
 		}
 
-		for (int i = 0; i < 10; i++)
-		{
-			if (playerBullet[i].isShot)
-			{
-				BulletMove();
-			}
-		}
+		
+		BulletMove();
+			
 
 		// 重力の適用
 		ApplyGravity(player);
