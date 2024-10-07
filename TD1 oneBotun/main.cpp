@@ -56,7 +56,7 @@ void BulletShot(Charactor& player)
 			if (!playerBullet[i].isShot)
 			{
 				playerBullet[i].isShot = true;
-				playerBullet[i].pos.x = player.pos.x;
+				 playerBullet[i].pos.x = player.pos.x;
 				playerBullet[i].pos.y = player.pos.y;
 				player.shotCoolTime = 20;
 				break;
@@ -143,6 +143,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		STAGE3,
 	};
 
+	//int ground = Novice::LoadTexture("./Resources/ground.png");
+
 	// ウィンドウの×ボタンが押されるまでループ
 	while (Novice::ProcessMessage() == 0) {
 		// フレームの開始
@@ -163,16 +165,24 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			player.pos.x += player.speed;
 		}
 
-
+		player.shotCoolTime--;
 
 		// スペースキーが押されたらジャンプ
 		if (keys[DIK_SPACE] && !preKeys[DIK_SPACE])
 		{
-			Jump(player);
+			Jump(player);		
 
 			if (keys[DIK_SPACE] && !preKeys[DIK_SPACE])
 			{
 				BulletShot(player);
+			}
+		}
+
+		for (int i = 0; i < 10; i++)
+		{
+			if (playerBullet[i].isShot)
+			{
+				BulletMove();
 			}
 		}
 
