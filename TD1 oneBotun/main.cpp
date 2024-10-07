@@ -19,25 +19,28 @@ struct Charactor
 	float height;
 	float velocity;
 	float gravity;
-	float jump;
+	float jumpPower;
+	bool isJumping;
 };
 
-float length = 0.0f;
-
-void PlayerMove(float y, float speed)
+void Jump(Charactor& player)
 {
-	y -= speed;
+	if (!player.isJumping) {
+		player.velocity = -player.jumpPower;
+		player.isJumping = true; // ジャンプ中にする
+	}
 }
 
-void Jump(float y, float jump)
+void ApplyGravity(Charactor& player)
 {
-	y -= jump;
-}
-
-void Grabity(float velocity, float gravity, float posy)
-{
-	velocity += gravity;
-	posy += velocity;
+	player.velocity += player.gravity;
+	player.pos.y += player.velocity;
+    //(Y座標600を地面とした場合)
+	if (player.pos.y >= 600.0f) {
+		player.pos.y = 600.0f;
+		player.isJumping = false; // 地面に着地したのでジャンプ状態を解除
+		player.velocity = 0.0f;   // 着地時に速度をリセット
+	}
 }
 
 // Windowsアプリでのエントリーポイント(main関数)
@@ -58,9 +61,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	player.gravity = 0.8f;
 	player.height = 64.0f;
 	player.wide = 64.0f;
-	player.jump = 20.0f;
-
-	//int isSpacePushCount = 0;
+	player.jumpPower = 20.0f;
+	player.isJumping = false;
+	player.speed = 10.0f;
 
 	// ウィンドウの×ボタンが押されるまでループ
 	while (Novice::ProcessMessage() == 0) {
@@ -73,20 +76,33 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 		///
 		/// ↓更新処理ここから
-		///
-		if (keys[DIK_SPACE] && preKeys[DIK_SPACE] ==0)
-		{
-			Jump(player.pos.y, player.jump);
+		/// 
+		
+		if (keys[DIK_A]) {
+			player.pos.x -= player.speed;
 		}
+		if (keys[DIK_D]) {
+			player.pos.x += player.speed;
+		}
+
+		// スペースキーが押されたらジャンプ
+		if (keys[DIK_SPACE] && preKeys[DIK_SPACE] == 0)
+		{
+			Jump(player);
+		}
+
+		// 重力の適用
+		ApplyGravity(player);
+
 		///
 		/// ↑更新処理ここまで
 		///
-
-		///
-		/// ↓描画処理ここから
-		///
 		
-		Novice::DrawBox(static_cast<int>(player.pos.x), int(player.pos.y), static_cast<int>(player.wide), static_cast<int>(player.height), 0.0f, WHITE, kFillModeSolid);
+		/// 
+		/// ↓描画処理ここから
+		/// 
+		
+		Novice::DrawBox(int(player.pos.x), int(player.pos.y), int(player.wide), int(player.height), 0.0f, WHITE, kFillModeSolid);
 
 		///
 		/// ↑描画処理ここまで
