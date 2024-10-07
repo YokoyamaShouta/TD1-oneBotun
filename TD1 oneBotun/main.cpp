@@ -36,8 +36,8 @@ void ApplyGravity(Charactor& player)
 	player.velocity += player.gravity;
 	player.pos.y += player.velocity;
     //(Y座標600を地面とした場合)
-	if (player.pos.y >= 600.0f) {
-		player.pos.y = 600.0f;
+	if (player.pos.y >= 535.0f) {
+		player.pos.y = 535.0f;
 		player.isJumping = false; // 地面に着地したのでジャンプ状態を解除
 		player.velocity = 0.0f;   // 着地時に速度をリセット
 	}
@@ -56,7 +56,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	//プレイヤーの初期化変数
 	Charactor player;
 	player.pos.x = 64.0f;
-	player.pos.y = 600.0f;
+	player.pos.y = 535.0f;
 	player.velocity = 0.0f;
 	player.gravity = 0.8f;
 	player.height = 64.0f;
@@ -64,6 +64,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	player.jumpPower = 20.0f;
 	player.isJumping = false;
 	player.speed = 10.0f;
+
+	int ground = Novice::LoadTexture("./Resources/ground.png");
 
 	// ウィンドウの×ボタンが押されるまでループ
 	while (Novice::ProcessMessage() == 0) {
@@ -103,6 +105,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// 
 		
 		Novice::DrawBox(int(player.pos.x), int(player.pos.y), int(player.wide), int(player.height), 0.0f, WHITE, kFillModeSolid);
+		Novice::DrawSprite(0, 0, ground, 1, 1, 0.0f,WHITE);
 
 		///
 		/// ↑描画処理ここまで
