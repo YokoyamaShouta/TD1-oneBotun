@@ -261,7 +261,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 		/// ↑描画処理ここまで
 		///
-
+		aa
 		// フレームの終了
 		Novice::EndFrame();
 
