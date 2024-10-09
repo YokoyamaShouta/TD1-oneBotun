@@ -48,6 +48,7 @@ void Jump(Charactor& player)
 	}
 }
 
+
 Bullet playerBullet[10];
 
 void BulletShot(Charactor& player) // 弾の描画するための関数
@@ -61,7 +62,7 @@ void BulletShot(Charactor& player) // 弾の描画するための関数
 				playerBullet[i].isShot = true;
 				 playerBullet[i].pos.x = player.pos.x;
 				playerBullet[i].pos.y = player.pos.y;
-				player.shotCoolTime = 20;
+				player.shotCoolTime = 10;
 				break;
 			}
 		}
@@ -122,13 +123,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	player.wide = 64.0f;
 	player.jumpPower = 20.0f;
 	player.isJumping = false;
-	player.speed = 10.0f;
-	player.shotCoolTime = 20;
+	player.speed = 3.0f;
+	player.shotCoolTime = 10;
 	player.isAlive = true;
 	player.isHit = false;
 	player.hp = 3;
 
-	Bullet playerBullet[10];
 	for (int i = 0; i < 10; i++)
 	{
 		playerBullet[i].pos.x = player.pos.x;
@@ -149,7 +149,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	king.velocity = 0.0f;
 	king.height = 64.0f;
 	king.wide = 64.0f;
-	king.speed = 10.0f;
+	king.speed = 3.0f;
 	king.hp = 3;
 	king.isAlive = true;
 	king.isHit = false;
@@ -201,7 +201,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			player.shotCoolTime--;
 		}
 		
-
 		// スペースキーが押されたらジャンプ
 		if (keys[DIK_SPACE] && !preKeys[DIK_SPACE])
 		{
@@ -231,8 +230,15 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↓描画処理ここから
 		/// 
 		
-		Novice::DrawBox(int(player.pos.x), int(player.pos.y), int(player.wide), int(player.height), 0.0f, WHITE, kFillModeSolid);
-		Novice::DrawBox(int(king.pos.x), int(king.pos.y), int(king.wide), int(king.height), 0.0f, RED, kFillModeSolid);
+		if (player.isAlive)
+		{
+			Novice::DrawBox(int(player.pos.x), int(player.pos.y), int(player.wide), int(player.height), 0.0f, WHITE, kFillModeSolid);
+		}
+
+		if (king.isAlive)
+		{
+			Novice::DrawBox(int(king.pos.x), int(king.pos.y), int(king.wide), int(king.height), 0.0f, RED, kFillModeSolid);
+		}
 
 		for (int i = 0; i < 10; i++)
 		{
