@@ -93,9 +93,17 @@ void ApplyGravity(Charactor& player)
 	}
 }
 
-float HitJudge(Vector2 a, Vector2 b) //当たり判定の関数
+float HitJudge(Vector2 a, Vector2 b) //body同士の当たり判定の関数
 {
 	return sqrtf((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y));
+}
+
+float HitJudgeBullet(Vector2 a) //弾との当たり判定
+{
+	for (int i = 0; i < 10; i++)
+	{
+		return sqrtf((playerBullet[i].pos.x - a.x) * (playerBullet[i].pos.x - a.x) + (playerBullet[i].pos.y - a.y) * (playerBullet[i].pos.y - a.y));
+	}
 }
 
 // Windowsアプリでのエントリーポイント(main関数)
@@ -202,9 +210,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↓更新処理ここから
 		/// 
 		
-		player.pos.x += player.speed;
-		king.pos.x += king.speed;
-
 		//次の弾が発射されるまでのクールタイム
 		if (player.shotCoolTime >= 0)
 		{
@@ -225,6 +230,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 				}
 			}
 		}
+
+
 
 		//弾の描画後の移動
 		BulletMove();
@@ -263,7 +270,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 		/// ↑描画処理ここまで
 		///
-		aa
+		
 		// フレームの終了
 		Novice::EndFrame();
 
