@@ -1,6 +1,8 @@
 #include <Novice.h>
 #define _USE_MATH_DEFINES
 #include <math.h>
+#include <time.h>
+#include <stdlib.h>
 
 const char kWindowTitle[] = "防人の冒険記";
 
@@ -21,6 +23,7 @@ struct Charactor
 	float gravity;
 	float jumpPower;
 	int shotCoolTime;
+	int hp;
 	bool isJumping;
 	bool isHit;
 	bool isAlive;
@@ -47,13 +50,13 @@ void Jump(Charactor& player)
 
 Bullet playerBullet[10];
 
-void BulletShot(Charactor& player)
+void BulletShot(Charactor& player) // 弾の描画するための関数
 {
 	if (player.shotCoolTime <= 0)
 	{
 		for (int i = 0; i < 10; i++)
 		{
-			if (!playerBullet[i].isShot)
+			if (!playerBullet[i].isShot) //描画する
 			{
 				playerBullet[i].isShot = true;
 				 playerBullet[i].pos.x = player.pos.x;
@@ -65,13 +68,13 @@ void BulletShot(Charactor& player)
 	}
 }
 
-void BulletMove()
+void BulletMove() //弾が移動する関数
 {
 	for (int i = 0; i < 10; i++)
 	{
 		if (playerBullet[i].isShot)
 		{
-			playerBullet[i].pos.x += playerBullet[i].speed;
+			playerBullet[i].pos.x += playerBullet[i].speed; //右方向に飛んでいく
 		}
 	}
 }
@@ -88,6 +91,11 @@ void ApplyGravity(Charactor& player)
 	}
 }
 
+float HitJudge(Vector2 a, Vector2 b) //当たり判定の関数
+{
+	return sqrtf((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y));
+}
+
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
@@ -97,6 +105,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	// キー入力結果を受け取る箱
 	char keys[256] = { 0 };
 	char preKeys[256] = { 0 };
+
+#pragma region 
+	//int ground = Novice::LoadTexture("./Resources/ground.png");
+#pragma endregion 画像の導入
+
+#pragma region 
 
 	//プレイヤーの初期化変数
 	Charactor player;
@@ -110,7 +124,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	player.isJumping = false;
 	player.speed = 10.0f;
 	player.shotCoolTime = 20;
+	player.isAlive = true;
+	player.isHit = false;
+	player.hp = 3;
 
+	Bullet playerBullet[10];
 	for (int i = 0; i < 10; i++)
 	{
 		playerBullet[i].pos.x = player.pos.x;
@@ -123,17 +141,34 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		playerBullet[i].isHit = false;
 	}
 
-	//王様の初期化変数
-	Charactor king;
+	//プレイヤーの後ろにいる王様の初期化変数
+ 	Charactor king; 
 	king.pos.x = 64.0f;
 	king.pos.y = 536.0f;
+	king.radius = 32.0f;
 	king.velocity = 0.0f;
 	king.height = 64.0f;
 	king.wide = 64.0f;
 	king.speed = 10.0f;
+	king.hp = 3;
+	king.isAlive = true;
+	king.isHit = false;
 
 	//float scrollX = 0.0f;
 	//float scrollMax = 3840.0f;
+
+	Charactor moveEnemy; //地面を歩く敵
+	moveEnemy.pos.x = 0.0f;
+	moveEnemy.pos.y = 0.0f;
+	moveEnemy.radius = 32.0f;
+	moveEnemy.speed = 3.0f;
+	moveEnemy.hp = 1;
+	moveEnemy.height = 32.0f;
+	moveEnemy.wide = 32.0f;
+	moveEnemy.isAlive = false;
+	moveEnemy.isHit = false;
+
+#pragma endregion 変数の初期化
 
 	enum MAPCHANGE
 	{
@@ -143,7 +178,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		STAGE3,
 	};
 
-	//int ground = Novice::LoadTexture("./Resources/ground.png");
 
 	// ウィンドウの×ボタンが押されるまでループ
 	while (Novice::ProcessMessage() == 0) {
@@ -158,30 +192,34 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↓更新処理ここから
 		/// 
 		
-		if (keys[DIK_A]) {
-			player.pos.x -= player.speed;
-		}
-		if (keys[DIK_D]) {
-			player.pos.x += player.speed;
-		}
+		player.pos.x += player.speed;
+		king.pos.x += king.speed;
 
-		player.shotCoolTime--;
+		//次の弾が発射されるまでのクールタイム
+		if (player.shotCoolTime >= 0)
+		{
+			player.shotCoolTime--;
+		}
+		
 
 		// スペースキーが押されたらジャンプ
 		if (keys[DIK_SPACE] && !preKeys[DIK_SPACE])
 		{
 			Jump(player);		
 
-			if (keys[DIK_SPACE] && !preKeys[DIK_SPACE])
+			if (player.shotCoolTime <= 0)
 			{
-				BulletShot(player);
+				if (keys[DIK_SPACE] && !preKeys[DIK_SPACE])
+				{
+					//弾の描画
+					BulletShot(player);
+				}
 			}
 		}
 
-		
+		//弾の描画後の移動
 		BulletMove();
 			
-
 		// 重力の適用
 		ApplyGravity(player);
 
@@ -204,7 +242,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			}
 		}
 
-		Novice::DrawLine(0, 600, 1280, 600, RED);
+
 
 		///
 		/// ↑描画処理ここまで
