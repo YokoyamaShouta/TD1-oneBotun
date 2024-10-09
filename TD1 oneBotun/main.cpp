@@ -8,8 +8,8 @@ const char kWindowTitle[] = "防人の冒険記";
 
 struct Vector2
 {
-	float x;
-	float y;
+    float x;
+    float y;
 };
 
 struct Charactor
@@ -31,21 +31,22 @@ struct Charactor
 
 struct Bullet
 {
-	Vector2 pos;
-	float speed;
-	float wide;
-	float height;
-	float radius;
-	bool isHit;
-	bool isShot;
+    Vector2 pos;
+    float speed;        // 弾の速度を保持
+    float wide;
+    float height;
+    float radius;
+    bool isHit;
+    bool isShot;
+    float shotCoolTime;
 };
 
 void Jump(Charactor& player)
 {
-	if (!player.isJumping) {
-		player.velocity = -player.jumpPower;
-		player.isJumping = true; // ジャンプ中にする
-	}
+    if (!player.isJumping) {
+        player.velocity = -player.jumpPower;
+        player.isJumping = true; // ジャンプ中にする
+    }
 }
 
 
@@ -82,8 +83,8 @@ void BulletMove() //弾が移動する関数
 
 void ApplyGravity(Charactor& player)
 {
-	player.velocity += player.gravity;
-	player.pos.y += player.velocity;
+    player.velocity += player.gravity;
+    player.pos.y += player.velocity;
     //(Y座標600を地面とした場合)
 	if (player.pos.y + player.height >= 600.0f) {
 		player.pos.y = 600.0f - player.height;
@@ -100,12 +101,12 @@ float HitJudge(Vector2 a, Vector2 b) //当たり判定の関数
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
-	// ライブラリの初期化
-	Novice::Initialize(kWindowTitle, 1280, 720);
+    // ライブラリの初期化
+    Novice::Initialize(kWindowTitle, 1280, 720);
 
-	// キー入力結果を受け取る箱
-	char keys[256] = { 0 };
-	char preKeys[256] = { 0 };
+    // キー入力結果を受け取る箱
+    char keys[256] = { 0 };
+    char preKeys[256] = { 0 };
 
 #pragma region 
 	//int ground = Novice::LoadTexture("./Resources/ground.png");
@@ -129,17 +130,18 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	player.isHit = false;
 	player.hp = 3;
 
-	for (int i = 0; i < 10; i++)
-	{
-		playerBullet[i].pos.x = player.pos.x;
-		playerBullet[i].pos.y = player.pos.y;
-		playerBullet[i].height = 32.0f;
-		playerBullet[i].wide = 32.0f;
-		playerBullet[i].height = 32.0f;
-		playerBullet[i].radius = 32.0f;
-		playerBullet[i].speed = 10.0f;
-		playerBullet[i].isHit = false;
-	}
+    for (int i = 0; i < 10; i++)
+    {
+        playerBullet[i].pos.x = player.pos.x;
+        playerBullet[i].pos.y = player.pos.y;
+        playerBullet[i].height = 32.0f;
+        playerBullet[i].wide = 32.0f;
+        playerBullet[i].radius = 32.0f;
+        playerBullet[i].speed = 10.0f;  // 弾の速度を設定
+        playerBullet[i].isHit = false;
+        playerBullet[i].isShot = false;
+        playerBullet[i].shotCoolTime = 20;
+    }
 
 	//プレイヤーの後ろにいる王様の初期化変数
  	Charactor king; 
@@ -192,9 +194,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		// フレームの開始
 		Novice::BeginFrame();
 
-		// キー入力を受け取る
-		memcpy(preKeys, keys, 256);
-		Novice::GetHitKeyStateAll(keys);
+        // キー入力を受け取る
+        memcpy(preKeys, keys, 256);
+        Novice::GetHitKeyStateAll(keys);
 
 		///
 		/// ↓更新処理ここから
@@ -248,13 +250,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			Novice::DrawBox(int(king.pos.x - king.wide / 2), int(king.pos.y - king.height / 2), int(king.wide), int(king.height), 0.0f, RED, kFillModeSolid);
 		}
 
-		for (int i = 0; i < 10; i++)
-		{
-			if (playerBullet[i].isShot)
-			{
-				Novice::DrawEllipse(int(playerBullet[i].pos.x), int(playerBullet[i].pos.y), 10, 10, 0.0f, BLUE, kFillModeSolid);
-			}
-		}
+        for (int i = 0; i < 10; i++)
+        {
+            if (playerBullet[i].isShot)
+            {
+                Novice::DrawEllipse(int(playerBullet[i].pos.x), int(playerBullet[i].pos.y), 10, 10, 0.0f, BLUE, kFillModeSolid);
+            }
+        }
 
 		Novice::DrawEllipse(static_cast<int>(king.pos.x), static_cast<int>(king.pos.y), 1, 1, 0.0f, BLUE, kFillModeSolid);
 
@@ -265,13 +267,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		// フレームの終了
 		Novice::EndFrame();
 
-		// ESCキーが押されたらループを抜ける
-		if (preKeys[DIK_ESCAPE] == 0 && keys[DIK_ESCAPE] != 0) {
-			break;
-		}
-	}
+        // ESCキーが押されたらループを抜ける
+        if (preKeys[DIK_ESCAPE] == 0 && keys[DIK_ESCAPE] != 0) {
+            break;
+        }
+    }
 
-	// ライブラリの終了
-	Novice::Finalize();
-	return 0;
+    // ライブラリの終了
+    Novice::Finalize();
+    return 0;
 }
