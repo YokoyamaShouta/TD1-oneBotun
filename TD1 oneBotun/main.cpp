@@ -99,13 +99,24 @@ float HitJudge(Vector2 a, Vector2 b) //body同士の当たり判定の関数
 	return sqrtf((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y));
 }
 
-//float HitJudgeBullet(Vector2 a) //弾との当たり判定
-//{
-//	for (int i = 0; i < 10; i++)
-//	{
-//		return sqrtf((playerBullet[i].pos.x - a.x) * (playerBullet[i].pos.x - a.x) + (playerBullet[i].pos.y - a.y) * (playerBullet[i].pos.y - a.y));
-//	}
-//}
+float HitJudgeBullet(Charactor &enemy, Bullet &bullet) //弾との当たり判定
+{
+	return sqrtf((bullet.pos.x - enemy.pos.x) * (bullet.pos.x - enemy.pos.x) + (bullet.pos.x - enemy.pos.y) * (bullet.pos.x - enemy.pos.y));
+}
+
+void MoveAnimation(int animetionFlameCount, int flameNumber, int flameSheets) //画像に切り替わりの変数
+{
+	animetionFlameCount++;
+	flameNumber = (animetionFlameCount / 10) % flameSheets;
+
+	if (animetionFlameCount > flameSheets * 10)
+	{
+		animetionFlameCount = 0;
+	}
+}
+
+int zikkenAnimationFlameCount = 0;
+int zikkenFlameNumber = 0;
 
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
@@ -118,7 +129,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     char preKeys[256] = { 0 };
 
 #pragma region 
-	//int ground = Novice::LoadTexture("./Resources/ground.png");
+	int ground = Novice::LoadTexture("./Resources/ground.png");
+	int zikken = Novice::LoadTexture("./Resources/Sprite-0001.png");
 #pragma endregion 画像の導入
 
 #pragma region 
@@ -198,6 +210,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		STAGE3,
 	};
 
+	
 
 	// ウィンドウの×ボタンが押されるまでループ
 	while (Novice::ProcessMessage() == 0) {
@@ -224,7 +237,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			Jump(player);	
 		}
 
-		if (player.isJumping)
+		if (player.isJumping) //jumpしているときの処理
 		{
 			player.canShotTime++;
 
@@ -242,7 +255,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			player.canShotTime = 0;
 		}
 
-		if (player.isCanShot)
+		if (player.isCanShot) //弾が発射できるようになった時
 		{
 			if (player.shotCoolTime <= 0)
 			{
@@ -254,7 +267,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			}
 		}
 
-		Novice::ScreenPrintf(10, 10, "%d", player.canShotTime);
+		MoveAnimation(zikkenAnimationFlameCount, zikkenFlameNumber, 3);
+
+
 
 		//弾の描画後の移動
 		BulletMove();
@@ -288,7 +303,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
             }
         }
 
+		Novice::DrawSpriteRect(600, 600, zikkenFlameNumber * 64, 0, 64, 64, zikken, 1.0f / 3.0f, 1.0f, 0.0f, WHITE);
+
 		Novice::DrawEllipse(static_cast<int>(king.pos.x), static_cast<int>(king.pos.y), 1, 1, 0.0f, BLUE, kFillModeSolid);
+		Novice::DrawSprite(0, 600, ground, 1, 1, 0.0f, WHITE);
+
+		Novice::ScreenPrintf(10, 10, "%d", zikkenAnimationFlameCount);
 
 		///
 		/// ↑描画処理ここまで
