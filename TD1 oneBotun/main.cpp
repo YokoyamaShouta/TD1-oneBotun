@@ -23,8 +23,10 @@ struct Charactor
 	float gravity;
 	float jumpPower;
 	int shotCoolTime;
+	int canShotTime; //　isCanShotをtrueにするためのtime
 	int hp;
 	bool isJumping;
+	bool isCanShot; // 弾が撃てるようになるフラグ
 	bool isHit;
 	bool isAlive;
 };
@@ -37,8 +39,7 @@ struct Bullet
     float height;
     float radius;
     bool isHit;
-    bool isShot;
-    float shotCoolTime;
+    bool isBullet;
 };
 
 void Jump(Charactor& player)
@@ -58,9 +59,9 @@ void BulletShot(Charactor& player) // 弾の描画するための関数
 	{
 		for (int i = 0; i < 10; i++)
 		{
-			if (!playerBullet[i].isShot) //描画する
+			if (!playerBullet[i].isBullet) //描画する
 			{
-				playerBullet[i].isShot = true;
+				playerBullet[i].isBullet = true;
 				 playerBullet[i].pos.x = player.pos.x;
 				playerBullet[i].pos.y = player.pos.y;
 				player.shotCoolTime = 10;
@@ -74,7 +75,7 @@ void BulletMove() //弾が移動する関数
 {
 	for (int i = 0; i < 10; i++)
 	{
-		if (playerBullet[i].isShot)
+		if (playerBullet[i].isBullet)
 		{
 			playerBullet[i].pos.x += playerBullet[i].speed; //右方向に飛んでいく
 		}
@@ -98,13 +99,13 @@ float HitJudge(Vector2 a, Vector2 b) //body同士の当たり判定の関数
 	return sqrtf((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y));
 }
 
-float HitJudgeBullet(Vector2 a) //弾との当たり判定
-{
-	for (int i = 0; i < 10; i++)
-	{
-		return sqrtf((playerBullet[i].pos.x - a.x) * (playerBullet[i].pos.x - a.x) + (playerBullet[i].pos.y - a.y) * (playerBullet[i].pos.y - a.y));
-	}
-}
+//float HitJudgeBullet(Vector2 a) //弾との当たり判定
+//{
+//	for (int i = 0; i < 10; i++)
+//	{
+//		return sqrtf((playerBullet[i].pos.x - a.x) * (playerBullet[i].pos.x - a.x) + (playerBullet[i].pos.y - a.y) * (playerBullet[i].pos.y - a.y));
+//	}
+//}
 
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
@@ -132,8 +133,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	player.wide = 64.0f;
 	player.jumpPower = 20.0f;
 	player.isJumping = false;
+	player.isCanShot = false;
 	player.speed = 3.0f;
 	player.shotCoolTime = 10;
+	player.canShotTime = 0;
 	player.isAlive = true;
 	player.isHit = false;
 	player.hp = 3;
@@ -147,8 +150,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
         playerBullet[i].radius = 32.0f;
         playerBullet[i].speed = 10.0f;  // 弾の速度を設定
         playerBullet[i].isHit = false;
-        playerBullet[i].isShot = false;
-        playerBullet[i].shotCoolTime = 20;
+        playerBullet[i].isBullet = false;
     }
 
 	//プレイヤーの後ろにいる王様の初期化変数
@@ -219,11 +221,32 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		// スペースキーが押されたらジャンプ
 		if (keys[DIK_SPACE] && !preKeys[DIK_SPACE])
 		{
-			Jump(player);		
+			Jump(player);	
+		}
 
+		if (player.isJumping)
+		{
+			player.canShotTime++;
+
+			if (player.canShotTime >= 10)
+			{
+				player.isCanShot = true;
+			}
+			else
+			{
+				player.isCanShot = false;
+			}
+		}
+		else
+		{
+			player.canShotTime = 0;
+		}
+
+		if (player.isCanShot)
+		{
 			if (player.shotCoolTime <= 0)
 			{
-				if (keys[DIK_SPACE] && !preKeys[DIK_SPACE])
+				if (keys[DIK_SPACE])
 				{
 					//弾の描画
 					BulletShot(player);
@@ -231,7 +254,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			}
 		}
 
-
+		Novice::ScreenPrintf(10, 10, "%d", player.canShotTime);
 
 		//弾の描画後の移動
 		BulletMove();
@@ -259,7 +282,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
         for (int i = 0; i < 10; i++)
         {
-            if (playerBullet[i].isShot)
+            if (playerBullet[i].isBullet)
             {
                 Novice::DrawEllipse(int(playerBullet[i].pos.x), int(playerBullet[i].pos.y), 10, 10, 0.0f, BLUE, kFillModeSolid);
             }
