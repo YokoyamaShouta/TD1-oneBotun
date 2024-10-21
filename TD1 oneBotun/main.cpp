@@ -102,9 +102,19 @@ float HitJudge(Vector2 &a, Vector2 &b) //body同士の当たり判定の関数
 	return sqrtf((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y));
 }
 
-float HitJudgeBullet(Charactor &enemy, Bullet &bullet) //弾との当たり判定
+// 弾と敵の当たり判定
+bool BulletHitEnemy(Bullet& bullet, Charactor& enemy)
 {
-	return sqrtf((bullet.pos.x - enemy.pos.x) * (bullet.pos.x - enemy.pos.x) + (bullet.pos.x - enemy.pos.y) * (bullet.pos.x - enemy.pos.y));
+	if (bullet.isBullet && enemy.isAlive) {
+		// 距離計算（簡易な矩形当たり判定）
+		if (bullet.pos.x > enemy.pos.x - enemy.wide / 2 &&
+			bullet.pos.x < enemy.pos.x + enemy.wide / 2 &&
+			bullet.pos.y > enemy.pos.y - enemy.height / 2 &&
+			bullet.pos.y < enemy.pos.y + enemy.height / 2) {
+			return true;
+		}
+	}
+	return false;
 }
 
 void MoveAnimation(int &animetionFlameCount, int &flameNumber, int flameSheets) //画像に切り替わりの変数
