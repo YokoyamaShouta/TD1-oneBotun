@@ -117,6 +117,36 @@ bool BulletHitEnemy(Bullet& bullet, Charactor& enemy)
 	return false;
 }
 
+// 敵のリスポーン処理
+void RespawnEnemy(Charactor& enemy)
+{
+	if (!enemy.isAlive) {
+		enemy.respawnTime--;
+		if (enemy.respawnTime <= 0) {
+			enemy.isAlive = true;
+			enemy.pos.x = 1280.0f; // 再登場する位置
+			enemy.pos.y = 600.0f - enemy.height; // 地面に配置
+		}
+	}
+}
+
+void MoveEnemy(Charactor& enemy)
+{
+	if (enemy.isAlive) {
+		if (!enemy.isJumping) {
+			Jump(enemy); // 敵がジャンプを開始
+		}
+		enemy.pos.x -= enemy.speed; // 左に移動
+		ApplyGravity(enemy);
+
+		// 画面外に出たらリセット
+		if (enemy.pos.x + enemy.wide < 0) {
+			enemy.pos.x = 1280.0f; // 画面右側に戻す
+			enemy.pos.y = 600.0f - enemy.height;
+		}
+	}
+}
+
 void MoveAnimation(int &animetionFlameCount, int &flameNumber, int flameSheets) //画像に切り替わりの変数
 {
 	animetionFlameCount++;
