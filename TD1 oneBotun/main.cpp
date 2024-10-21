@@ -284,7 +284,21 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			player.canShotTime = 0;
 		}
 
-		
+		// 敵の動き
+		MoveEnemy(enemy);
+
+		// 敵のリスポーン処理
+		RespawnEnemy(enemy);
+
+		// 弾と敵の当たり判定処理
+		for (int i = 0; i < 10; i++)
+		{
+			if (BulletHitEnemy(playerBullet[i], enemy)) {
+				playerBullet[i].isBullet = false; // 弾を消す
+				enemy.isAlive = false;  // 敵を倒す
+				enemy.respawnTime = 120; // 120フレーム後にリスポーン
+			}
+		}
 
 		if (player.isCanShot) //弾が発射できるようになった時
 		{
