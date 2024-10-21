@@ -22,9 +22,12 @@ struct Charactor
 	float velocity;
 	float gravity;
 	float jumpPower;
-	int shotCoolTime;
+	int shotCoolTime; //弾が発射されるクールタイム
 	int canShotTime; //　isCanShotをtrueにするためのtime
 	int hp;
+	int flameCount; // アニメーション
+	int flame; // アニメーション
+	int revivalTime; // isHItがfalseの時にtrueにするタイマー
 	bool isJumping;
 	bool isCanShot; // 弾が撃てるようになるフラグ
 	bool isHit;
@@ -157,7 +160,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	player.canShotTime = 0;
 	player.isAlive = true;
 	player.isHit = false;
-	player.hp = 3;
+	player.hp = 5;
 
     for (int i = 0; i < 10; i++)
     {
@@ -190,25 +193,32 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	//float scrollX = 0.0f;
 	//float scrollMax = 3840.0f;
 
-	Charactor walkingEnemy; //地面を歩く敵
-	walkingEnemy.pos.x = 0.0f;
-	walkingEnemy.pos.y = 0.0f;
-	walkingEnemy.radius = 32.0f;
-	walkingEnemy.speed = 5.0f;
-	walkingEnemy.hp = 1;
-	walkingEnemy.height = 16.0f;
-	walkingEnemy.wide = 16.0f;
-	walkingEnemy.isAlive = false;
-	walkingEnemy.isHit = false;
+	Charactor walkingEnemy[5];
+	for (int i = 0; i < 5; i++)//地面を歩く敵
+	{
+		walkingEnemy[i].pos.x = 0.0f;
+		walkingEnemy[i].pos.y = 0.0f;
+		walkingEnemy[i].radius = 32.0f;
+		walkingEnemy[i].speed = 5.0f;
+		walkingEnemy[i].hp = 1;
+		walkingEnemy[i].height = 16.0f;
+		walkingEnemy[i].wide = 16.0f;
+		walkingEnemy[i].isAlive = false;
+		walkingEnemy[i].isHit = false;
+		walkingEnemy[i].flameCount = 0;
+		walkingEnemy[i].flame = 0;
+	}
 
-	Charactor flyingEnemy;
-	flyingEnemy.pos.x = 400.0f;
-	flyingEnemy.pos.y = 400.0f;
-	flyingEnemy.isAlive = true;
-	flyingEnemy.radius = 32.0f;
-
-	int flyingEnemyFlameCount = 0;
-	int flyingEnemyFlame = 0;
+	Charactor flyingEnemy[5];
+	for (int i = 0; i < 5; i++)
+	{
+		flyingEnemy[i].pos.x = 400.0f;
+		flyingEnemy[i].pos.y = 400.0f;
+		flyingEnemy[i].isAlive = true;
+		flyingEnemy[i].radius = 32.0f;
+		flyingEnemy[i].flameCount = 0;
+		flyingEnemy[i].flame = 0;
+	}
 
 	int backGraundPosX = 0;
 
@@ -237,12 +247,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↓更新処理ここから
 		/// 
 		
-		MoveAnimation(playerFlameCount, playerFlame, 6);
-
-		if (flyingEnemy.isAlive)
+		// スペースキーが押されたらジャンプ
+		if (keys[DIK_SPACE] && !preKeys[DIK_SPACE])
 		{
-			MoveAnimation(flyingEnemyFlameCount, flyingEnemyFlame, 4);
-		}
+			Jump(player);
+		}		
 
 		//次の弾が発射されるまでのクールタイム
 		if (player.shotCoolTime >= 0)
@@ -250,12 +259,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			player.shotCoolTime--;
 		}
 		
-		// スペースキーが押されたらジャンプ
-		if (keys[DIK_SPACE] && !preKeys[DIK_SPACE])
-		{
-			Jump(player);	
-		}
-
 		if (player.isJumping) //jumpしているときの処理
 		{
 			player.canShotTime++;
@@ -274,6 +277,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			player.canShotTime = 0;
 		}
 
+		
+
 		if (player.isCanShot) //弾が発射できるようになった時
 		{
 			if (player.shotCoolTime <= 0)
@@ -286,12 +291,21 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			}
 		}
 
-
 		//弾の描画後の移動
 		BulletMove();
 			
 		// 重力の適用
 		ApplyGravity(player);
+
+		MoveAnimation(playerFlameCount, playerFlame, 6);
+
+		for (int i = 0; i < 1; i++)
+		{
+			if (flyingEnemy[i].isAlive)
+			{
+				MoveAnimation(flyingEnemy[i].flameCount, flyingEnemy[i].flame, 4);
+			}
+		}
 
 		///
 		/// ↑更新処理ここまで
@@ -304,14 +318,18 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 		Novice::DrawSprite(600, 600, groundGraph, 1, 1, 0.0f, WHITE);
 
-		if (player.isAlive && !flyingEnemy.isAlive && !walkingEnemy.isAlive)
+		for (int i = 0; i < 5; i++)
 		{
-			Novice::DrawSpriteRect(int(player.pos.x - player.wide / 2), int(player.pos.y - player.height / 2), playerFlame * 64, 0, 64, 64, playerGraph, 1.0f / 6.0f, 1.0f, 0.0f, WHITE);
+			if (player.isAlive && !flyingEnemy[i].isAlive && !walkingEnemy[i].isAlive)
+			{
+				Novice::DrawSpriteRect(int(player.pos.x - player.wide / 2), int(player.pos.y - player.height / 2), playerFlame * 64, 0, 64, 64, playerGraph, 1.0f / 6.0f, 1.0f, 0.0f, WHITE);
+			}
+			else
+			{
+				Novice::DrawSpriteRect(int(player.pos.x - player.wide / 2), int(player.pos.y - player.height / 2), 0, 0, 64, 64, playerGraph, 1.0f / 6.0f, 1.0f, 0.0f, WHITE);
+			}
 		}
-		else
-		{
-			Novice::DrawSpriteRect(int(player.pos.x - player.wide / 2), int(player.pos.y - player.height / 2), 0, 0, 64, 64, playerGraph, 1.0f / 6.0f, 1.0f, 0.0f, WHITE);
-		}
+		
 
 		
 
@@ -328,10 +346,14 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
             }
         }
 
-		if (flyingEnemy.isAlive)
+		for (int i = 0; i < 5; i++)
 		{
-			Novice::DrawSpriteRect(int(flyingEnemy.pos.x - flyingEnemy.radius), int(flyingEnemy.pos.y - flyingEnemy.radius), flyingEnemyFlame * 64, 0, 64, 64, flyingEnemyGraph, 1.0f / 4.0f, 1.0f, 0.0f, WHITE);
+			if (flyingEnemy[i].isAlive)
+			{
+				Novice::DrawSpriteRect(int(flyingEnemy[i].pos.x - flyingEnemy[i].radius), int(flyingEnemy[i].pos.y - flyingEnemy[i].radius), flyingEnemy[i].flame * 64, 0, 64, 64, flyingEnemyGraph, 1.0f / 4.0f, 1.0f, 0.0f, WHITE);
+			}
 		}
+		
 
 		/*Novice::DrawEllipse(static_cast<int>(king.pos.x), static_cast<int>(king.pos.y), 1, 1, 0.0f, BLUE, kFillModeSolid);
 		Novice::ScreenPrintf(10, 10, "%d", zikkenAnimationFlameCount);
