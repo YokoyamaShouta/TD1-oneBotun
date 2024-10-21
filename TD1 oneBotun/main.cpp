@@ -23,23 +23,24 @@ struct Charactor
 	float gravity;
 	float jumpPower;
 	int shotCoolTime;
-	int canShotTime; //　isCanShotをtrueにするためのtime
+	int canShotTime; // isCanShotをtrueにするためのtime
 	int hp;
 	bool isJumping;
-	bool isCanShot; // 弾が撃てるようになるフラグ
+	bool isCanShot;  // 弾が撃てるようになるフラグ
 	bool isHit;
 	bool isAlive;
+	int respawnTime; // リスポーンまでの時間を管理する変数
 };
 
 struct Bullet
 {
-    Vector2 pos;
-    float speed;        // 弾の速度を保持
-    float wide;
-    float height;
-    float radius;
-    bool isHit;
-    bool isBullet;
+	Vector2 pos;
+	float speed;        // 弾の速度を保持
+	float wide;
+	float height;
+	float radius;
+	bool isHit;
+	bool isBullet;
 };
 
 void Jump(Charactor& player)
@@ -53,24 +54,6 @@ void Jump(Charactor& player)
 
 Bullet playerBullet[10];
 
-void BulletShot(Charactor& player) // 弾の描画するための関数
-{
-	if (player.shotCoolTime <= 0)
-	{
-		for (int i = 0; i < 10; i++)
-		{
-			if (!playerBullet[i].isBullet) //描画する
-			{
-				playerBullet[i].isBullet = true;
-				 playerBullet[i].pos.x = player.pos.x;
-				playerBullet[i].pos.y = player.pos.y;
-				player.shotCoolTime = 10;
-				break;
-			}
-		}
-	}
-}
-
 void BulletMove() //弾が移動する関数
 {
 	for (int i = 0; i < 10; i++)
@@ -78,9 +61,33 @@ void BulletMove() //弾が移動する関数
 		if (playerBullet[i].isBullet)
 		{
 			playerBullet[i].pos.x += playerBullet[i].speed; //右方向に飛んでいく
+
+			// 弾が画面外に出たら消す（画面サイズに合わせて条件を設定）
+			if (playerBullet[i].pos.x > 1280) {
+				playerBullet[i].isBullet = false; // 弾を無効化
+			}
 		}
 	}
 }
+
+void BulletShot(Charactor& player) // 弾の描画するための関数
+{
+	if (player.shotCoolTime <= 0)
+	{
+		for (int i = 0; i < 10; i++)
+		{
+			if (!playerBullet[i].isBullet) // 発射可能な弾がある場合
+			{
+				playerBullet[i].isBullet = true;
+				playerBullet[i].pos.x = player.pos.x;
+				playerBullet[i].pos.y = player.pos.y;
+				player.shotCoolTime = 10; // クールタイムを設定
+				break;
+			}
+		}
+	}
+}
+
 
 void ApplyGravity(Charactor& player)
 {
@@ -104,19 +111,50 @@ float HitJudgeBullet(Charactor &enemy, Bullet &bullet) //弾との当たり判�
 	return sqrtf((bullet.pos.x - enemy.pos.x) * (bullet.pos.x - enemy.pos.x) + (bullet.pos.x - enemy.pos.y) * (bullet.pos.x - enemy.pos.y));
 }
 
-void MoveAnimation(int animetionFlameCount, int flameNumber, int flameSheets) //画像に切り替わりの変数
+// 弾と敵の当たり判定
+bool BulletHitEnemy(Bullet& bullet, Charactor& enemy)
 {
-	animetionFlameCount++;
-	flameNumber = (animetionFlameCount / 10) % flameSheets;
+	if (bullet.isBullet && enemy.isAlive) {
+		// 距離計算（簡易な矩形当たり判定）
+		if (bullet.pos.x > enemy.pos.x - enemy.wide / 2 &&
+			bullet.pos.x < enemy.pos.x + enemy.wide / 2 &&
+			bullet.pos.y > enemy.pos.y - enemy.height / 2 &&
+			bullet.pos.y < enemy.pos.y + enemy.height / 2) {
+			return true;
+		}
+	}
+	return false;
+}
 
-	if (animetionFlameCount > flameSheets * 10)
-	{
-		animetionFlameCount = 0;
+// 敵のリスポーン処理
+void RespawnEnemy(Charactor& enemy)
+{
+	if (!enemy.isAlive) {
+		enemy.respawnTime--;
+		if (enemy.respawnTime <= 0) {
+			enemy.isAlive = true;
+			enemy.pos.x = 1280.0f; // 再登場する位置
+			enemy.pos.y = 600.0f - enemy.height; // 地面に配置
+		}
 	}
 }
 
-int zikkenAnimationFlameCount = 0;
-int zikkenFlameNumber = 0;
+void MoveEnemy(Charactor& enemy)
+{
+	if (enemy.isAlive) {
+		if (!enemy.isJumping) {
+			Jump(enemy); // 敵がジャンプを開始
+		}
+		enemy.pos.x -= enemy.speed; // 左に移動
+		ApplyGravity(enemy);
+
+		// 画面外に出たらリセット
+		if (enemy.pos.x + enemy.wide < 0) {
+			enemy.pos.x = 1280.0f; // 画面右側に戻す
+			enemy.pos.y = 600.0f - enemy.height;
+		}
+	}
+}
 
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
@@ -130,7 +168,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 #pragma region 
 	int ground = Novice::LoadTexture("./Resources/ground.png");
-	int zikken = Novice::LoadTexture("./Resources/Sprite-0001.png");
 #pragma endregion 画像の導入
 
 #pragma region 
@@ -165,6 +202,19 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
         playerBullet[i].isBullet = false;
     }
 
+	// 敵の初期化
+	Charactor enemy;
+	enemy.pos.x = 1280.0f; // 画面外から登場
+	enemy.pos.y = 600.0f - 64.0f; // 地面に配置
+	enemy.velocity = 0.0f;
+	enemy.gravity = 0.8f;
+	enemy.height = 64.0f;
+	enemy.wide = 64.0f;
+	enemy.jumpPower = 20.0f;
+	enemy.isJumping = false;
+	enemy.isAlive = true;
+	enemy.speed = 3.0f;
+
 	//プレイヤーの後ろにいる王様の初期化変数
  	Charactor king; 
 	king.pos.x = 10.0f;
@@ -177,9 +227,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	king.hp = 3;
 	king.isAlive = true;
 	king.isHit = false;
-
-	//float scrollX = 0.0f;
-	//float scrollMax = 3840.0f;
 
 	Charactor moveEnemy; //地面を歩く敵
 	moveEnemy.pos.x = 0.0f;
@@ -230,46 +277,56 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		{
 			player.shotCoolTime--;
 		}
+
+		if (keys[DIK_D]) {
+			player.pos.x += player.speed;
+		}
+		if (keys[DIK_A]) {
+			player.pos.x -= player.speed;
+		}
 		
-		// スペースキーが押されたらジャンプ
+		// スペースキーが押されたらジャンプ（1回目のスペース）
 		if (keys[DIK_SPACE] && !preKeys[DIK_SPACE])
 		{
-			Jump(player);	
+			if (!player.isJumping) {
+				Jump(player);  // 最初のジャンプ
+			}
+			else if (player.isCanShot) { // ジャンプ中にもう一度スペースキーが押された場合
+				BulletShot(player);  // 弾の発射
+			}
 		}
 
-		if (player.isJumping) //jumpしているときの処理
+		if (player.isJumping) //ジャンプ中の処理
 		{
 			player.canShotTime++;
 
+			// 空中で弾を撃てるようになるまでの時間
 			if (player.canShotTime >= 10)
 			{
 				player.isCanShot = true;
-			}
-			else
-			{
-				player.isCanShot = false;
 			}
 		}
 		else
 		{
 			player.canShotTime = 0;
+			player.isCanShot = false;
 		}
 
-		if (player.isCanShot) //弾が発射できるようになった時
+		// 敵の動き
+		MoveEnemy(enemy);
+
+		// 敵のリスポーン処理
+		RespawnEnemy(enemy);
+
+		// 弾と敵の当たり判定処理
+		for (int i = 0; i < 10; i++)
 		{
-			if (player.shotCoolTime <= 0)
-			{
-				if (keys[DIK_SPACE])
-				{
-					//弾の描画
-					BulletShot(player);
-				}
+			if (BulletHitEnemy(playerBullet[i], enemy)) {
+				playerBullet[i].isBullet = false; // 弾を消す
+				enemy.isAlive = false;  // 敵を倒す
+				enemy.respawnTime = 120; // 120フレーム後にリスポーン
 			}
 		}
-
-		MoveAnimation(zikkenAnimationFlameCount, zikkenFlameNumber, 3);
-
-
 
 		//弾の描画後の移動
 		BulletMove();
@@ -302,13 +359,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
                 Novice::DrawEllipse(int(playerBullet[i].pos.x), int(playerBullet[i].pos.y), 10, 10, 0.0f, BLUE, kFillModeSolid);
             }
         }
-
-		Novice::DrawSpriteRect(600, 600, zikkenFlameNumber * 64, 0, 64, 64, zikken, 1.0f / 3.0f, 1.0f, 0.0f, WHITE);
-
+		if (enemy.isAlive) {
+			Novice::DrawBox(int(enemy.pos.x - enemy.wide / 2), int(enemy.pos.y - enemy.height / 2), int(enemy.wide), int(enemy.height), 0.0f, RED, kFillModeSolid);
+		}
 		Novice::DrawEllipse(static_cast<int>(king.pos.x), static_cast<int>(king.pos.y), 1, 1, 0.0f, BLUE, kFillModeSolid);
 		Novice::DrawSprite(0, 600, ground, 1, 1, 0.0f, WHITE);
-
-		Novice::ScreenPrintf(10, 10, "%d", zikkenAnimationFlameCount);
 
 		///
 		/// ↑描画処理ここまで
