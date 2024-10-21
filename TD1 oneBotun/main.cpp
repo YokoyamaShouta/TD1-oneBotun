@@ -22,16 +22,16 @@ struct Charactor
 	float velocity;
 	float gravity;
 	float jumpPower;
-	int shotCoolTime; //弾が発射されるクールタイム
-	int canShotTime; //　isCanShotをtrueにするためのtime
+	int shotCoolTime;
+	int canShotTime; // isCanShotをtrueにするためのtime
 	int hp;
-	int flameCount; // アニメーション
-	int flame; // アニメーション
-	int revivalTime; // isHItがfalseの時にtrueにするタイマー
 	bool isJumping;
-	bool isCanShot; // 弾が撃てるようになるフラグ
+	bool isCanShot;  // 弾が撃てるようになるフラグ
 	bool isHit;
 	bool isAlive;
+	int respawnTime; // リスポーンまでの時間を管理する変数
+	int flameCount;
+	int flame;
 };
 
 struct Bullet
