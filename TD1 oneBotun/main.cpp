@@ -137,7 +137,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	int backGroundGraph = Novice::LoadTexture("./Resources/forestBackGround.png"); // 背景
 	int kingGraph = Novice::LoadTexture("./Resources/king.png"); // 王様
 	int flyingEnemyGraph = Novice::LoadTexture("./Resources/flyingEnemy.png"); // 飛んでいる敵
-	//int warkEnemy = Novice::LoadTexture("./Resources/workjngEnemy.png"); // 歩いてる敵	 
+	int warkingEnemyGraph = Novice::LoadTexture("./Resources/workjngEnemy.png"); // 歩いてる敵	 
 	int playerGraph = Novice::LoadTexture("./Resources/Player.png");  // プレイヤー
 	int playerBulletGraph = Novice::LoadTexture("./Resources/yari.png"); // プレイヤーの弾
 #pragma endregion 画像の導入
@@ -190,21 +190,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	king.isAlive = true;
 	king.isHit = false;
 
-	//float scrollX = 0.0f;
-	//float scrollMax = 3840.0f;
-
 	Charactor walkingEnemy[5];
 	for (int i = 0; i < 5; i++)//地面を歩く敵
 	{
-		walkingEnemy[i].pos.x = 0.0f;
-		walkingEnemy[i].pos.y = 0.0f;
+		walkingEnemy[i].pos.x = 300.0f;
+		walkingEnemy[i].pos.y = 536.0f;
 		walkingEnemy[i].radius = 32.0f;
 		walkingEnemy[i].speed = 5.0f;
 		walkingEnemy[i].hp = 1;
-		walkingEnemy[i].height = 16.0f;
-		walkingEnemy[i].wide = 16.0f;
-		walkingEnemy[i].isAlive = false;
+		walkingEnemy[i].isAlive = true;
 		walkingEnemy[i].isHit = false;
+		walkingEnemy[i].revivalTime = 0;
 		walkingEnemy[i].flameCount = 0;
 		walkingEnemy[i].flame = 0;
 	}
@@ -216,6 +212,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		flyingEnemy[i].pos.y = 400.0f;
 		flyingEnemy[i].isAlive = true;
 		flyingEnemy[i].radius = 32.0f;
+		flyingEnemy[i].hp = 1;
+		flyingEnemy[i].isHit = false;
+		flyingEnemy[i].revivalTime = 0;
 		flyingEnemy[i].flameCount = 0;
 		flyingEnemy[i].flame = 0;
 	}
@@ -231,8 +230,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		STAGE2,
 		STAGE3,
 	};
-
-	
 
 	// ウィンドウの×ボタンが押されるまでループ
 	while (Novice::ProcessMessage() == 0) {
@@ -299,11 +296,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
 		MoveAnimation(playerFlameCount, playerFlame, 6);
 
+		
 		for (int i = 0; i < 1; i++)
 		{
 			if (flyingEnemy[i].isAlive)
 			{
 				MoveAnimation(flyingEnemy[i].flameCount, flyingEnemy[i].flame, 4);
+			}
+
+			if (walkingEnemy[i].isAlive)
+			{
+				MoveAnimation(walkingEnemy[i].flameCount, walkingEnemy[i].flame, 4);
 			}
 		}
 
@@ -354,10 +357,19 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			}
 		}
 		
+		for (int i = 0; i < 5; i++)
+		{
+			if (walkingEnemy[i].isAlive)
+			{
+				Novice::DrawSpriteRect(int(walkingEnemy[i].pos.x - walkingEnemy[i].radius), int(walkingEnemy[i].pos.y - walkingEnemy[i].radius), walkingEnemy[i].flame * 64, 0, 64, 64, warkingEnemyGraph, 1.0f / 4.0f, 1.0f, 0.0f, WHITE);
+			}
 
-		/*Novice::DrawEllipse(static_cast<int>(king.pos.x), static_cast<int>(king.pos.y), 1, 1, 0.0f, BLUE, kFillModeSolid);
-		Novice::ScreenPrintf(10, 10, "%d", zikkenAnimationFlameCount);
-		Novice::ScreenPrintf(10, 20, "%d", zikkenFlameNumber);*/
+			Novice::DrawEllipse(int(walkingEnemy[i].pos.x), int(walkingEnemy[i].pos.y), 32, 32, 0.0f, RED, kFillModeSolid);
+			Novice::DrawEllipse(int(flyingEnemy[i].pos.x), int(flyingEnemy[i].pos.y), 32, 32, 0.0f, RED, kFillModeSolid);
+		}
+
+		
+		
 		///
 		/// ↑描画処理ここまで
 		///
