@@ -43,6 +43,8 @@ struct Bullet
 	bool isBullet;
 };
 
+
+
 void Jump(Charactor& player)
 {
     if (!player.isJumping) {
@@ -156,6 +158,84 @@ void MoveEnemy(Charactor& enemy)
 	}
 }
 
+// ホーミング弾の構造体
+struct HomingBullet {
+	Vector2 pos;
+	Vector2 velocity;  // 弾の速度（ベクトル）
+	bool isActive;     // 弾が発射されているか
+};
+
+// 飛んでくる敵（FlyingEnemy）の構造体
+struct FlyingEnemy {
+	Vector2 pos;
+	float speed;
+	int shotCooldown;  // 弾を撃つ間隔（フレーム）
+	HomingBullet bullet; // ホーミング弾
+};
+
+// ホーミング弾の初期化
+void InitHomingBullet(HomingBullet& bullet) {
+	bullet.pos = { 0.0f, 0.0f };
+	bullet.velocity = { 0.0f, 0.0f };
+	bullet.isActive = false;
+}
+
+void FireHomingBullet(FlyingEnemy& enemy, Charactor& player) {
+	if (!enemy.bullet.isActive) {
+		enemy.bullet.pos = enemy.pos;  // 敵の位置から弾を発射
+		float dx = player.pos.x - enemy.pos.x;
+		float dy = player.pos.y - enemy.pos.y;
+		float length = sqrtf(dx * dx + dy * dy);
+
+		// ゼロ除算を防ぐためのチェック
+		if (length > 0.0f) {
+			enemy.bullet.velocity = { dx / length * 5.0f, dy / length * 5.0f };  // 速度ベクトルを設定
+			enemy.bullet.isActive = true;
+		}
+	}
+}
+
+void MoveHomingBullet(HomingBullet& bullet) {
+	if (bullet.isActive) {
+		bullet.pos.x += bullet.velocity.x;
+		bullet.pos.y += bullet.velocity.y;
+
+		// 画面外に出たら消える
+		if (bullet.pos.x < 0 || bullet.pos.x > 1280 || bullet.pos.y < 0 || bullet.pos.y > 720) {
+			bullet.isActive = false;
+		}
+	}
+}
+
+// 飛んでくる敵（FlyingEnemy）の初期化
+void InitFlyingEnemy(FlyingEnemy& enemy) {
+	enemy.pos = { 1280.0f, 200.0f }; // 画面右上から出現
+	enemy.speed = 2.0f;
+	enemy.shotCooldown = 60; // 1秒ごとに弾を撃つ（60フレーム）
+	InitHomingBullet(enemy.bullet);
+}
+
+// 飛んでくる敵の移動と弾の発射処理
+void UpdateFlyingEnemy(FlyingEnemy& enemy, Charactor& player) {
+	// 敵の移動（左方向に移動）
+	enemy.pos.x -= enemy.speed;
+
+	// 弾を撃つクールダウン
+	enemy.shotCooldown--;
+	if (enemy.shotCooldown <= 0) {
+		FireHomingBullet(enemy, player);
+		enemy.shotCooldown = 60;  // 次の弾発射までのクールダウンをリセット
+	}
+
+	// ホーミング弾の移動
+	MoveHomingBullet(enemy.bullet);
+
+	// 画面外に出たら敵を再配置
+	if (enemy.pos.x < -enemy.speed) {
+		enemy.pos.x = 1280.0f;  // 画面右に戻る
+	}
+}
+
 // Windowsアプリでのエントリーポイント(main関数)
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 
@@ -180,11 +260,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	player.gravity = 0.8f;
 	player.height = 64.0f;
 	player.wide = 64.0f;
-	player.jumpPower = 20.0f;
+	player.jumpPower = 25.0f;
 	player.isJumping = false;
 	player.isCanShot = false;
 	player.speed = 3.0f;
-	player.shotCoolTime = 10;
+	player.shotCoolTime = 5;
 	player.canShotTime = 0;
 	player.isAlive = true;
 	player.isHit = false;
@@ -202,18 +282,22 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
         playerBullet[i].isBullet = false;
     }
 
+	// 飛んでくる敵の初期化
+	FlyingEnemy flyingEnemy;
+	InitFlyingEnemy(flyingEnemy);
+
 	// 敵の初期化
 	Charactor enemy;
 	enemy.pos.x = 1280.0f; // 画面外から登場
 	enemy.pos.y = 600.0f - 64.0f; // 地面に配置
 	enemy.velocity = 0.0f;
-	enemy.gravity = 0.8f;
+	enemy.gravity = 0.7f;
 	enemy.height = 64.0f;
 	enemy.wide = 64.0f;
 	enemy.jumpPower = 20.0f;
 	enemy.isJumping = false;
 	enemy.isAlive = true;
-	enemy.speed = 3.0f;
+	enemy.speed = 2.5f;
 
 	//プレイヤーの後ろにいる王様の初期化変数
  	Charactor king; 
@@ -228,25 +312,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	king.isAlive = true;
 	king.isHit = false;
 
-	Charactor moveEnemy; //地面を歩く敵
-	moveEnemy.pos.x = 0.0f;
-	moveEnemy.pos.y = 0.0f;
-	moveEnemy.radius = 32.0f;
-	moveEnemy.speed = 5.0f;
-	moveEnemy.hp = 1;
-	moveEnemy.height = 16.0f;
-	moveEnemy.wide = 16.0f;
-	moveEnemy.isAlive = false;
-	moveEnemy.isHit = false;
-
-	Charactor flyingEnemy; //空飛んでる敵
-	flyingEnemy.pos.x = 0.0f;
-	flyingEnemy.pos.y = 0.0f;
-	flyingEnemy.radius = 32.0f;
-	flyingEnemy.speed = 5.0f;
-	flyingEnemy.height = 16.0f;
-	flyingEnemy.wide = 16.0f;
-
 #pragma endregion 変数の初期化
 
 	enum MAPCHANGE
@@ -256,8 +321,6 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		STAGE2,
 		STAGE3,
 	};
-
-	
 
 	// ウィンドウの×ボタンが押されるまでループ
 	while (Novice::ProcessMessage() == 0) {
@@ -334,6 +397,9 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		// 重力の適用
 		ApplyGravity(player);
 
+		// 飛んでくる敵の更新処理
+		UpdateFlyingEnemy(flyingEnemy, player);
+
 		///
 		/// ↑更新処理ここまで
 		///
@@ -352,6 +418,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 			Novice::DrawBox(int(king.pos.x - king.wide / 2), int(king.pos.y - king.height / 2), int(king.wide), int(king.height), 0.0f, RED, kFillModeSolid);
 		}
 
+		Novice::DrawBox(int(flyingEnemy.pos.x - 32.0f / 2), int(flyingEnemy.pos.y - 32.0f / 2), 32, 32, 0.0f, RED, kFillModeSolid); // 敵の描画
+
+		if (flyingEnemy.bullet.isActive) {
+			Novice::DrawEllipse(int(flyingEnemy.bullet.pos.x), int(flyingEnemy.bullet.pos.y), 10, 10, 0.0f, GREEN, kFillModeSolid); // ホーミング弾の描画
+		}
+
         for (int i = 0; i < 10; i++)
         {
             if (playerBullet[i].isBullet)
@@ -364,6 +436,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		}
 		Novice::DrawEllipse(static_cast<int>(king.pos.x), static_cast<int>(king.pos.y), 1, 1, 0.0f, BLUE, kFillModeSolid);
 		Novice::DrawSprite(0, 600, ground, 1, 1, 0.0f, WHITE);
+
+		Novice::ScreenPrintf(20, 20, "%d", player.hp);
 
 		///
 		/// ↑描画処理ここまで
