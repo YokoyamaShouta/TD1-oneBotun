@@ -31,6 +31,7 @@ struct Charactor
 	bool isCanShot;  // 弾が撃てるようになるフラグ
 	bool isHit;
 	bool isAlive;
+	bool isSmash; // つぶされた時のフラグ
 	int respawnTime; // リスポーンまでの時間を管理する変数
 	int flameCount;
 	int flame;
@@ -146,21 +147,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
     char preKeys[256] = { 0 };
 
 #pragma region 
-	int groundGraph = Novice::LoadTexture("./Resources/ground.png"); //地面
-	int backGroundGraph = Novice::LoadTexture("./Resources/forestBackGround.png"); // 背景
-	int kingGraph = Novice::LoadTexture("./Resources/king.png"); // 王様
-	int flyingEnemyGraph = Novice::LoadTexture("./Resources/flyingEnemy.png"); // 飛んでいる敵
-	int warkingEnemyGraph = Novice::LoadTexture("./Resources/workjngEnemy.png"); // 歩いてる敵	 
-	int playerGraph = Novice::LoadTexture("./Resources/Player.png");  // プレイヤー
-	int playerBulletGraph = Novice::LoadTexture("./Resources/yari.png"); // プレイヤーの弾
-#pragma endregion 画像の導入
-
-#pragma region 
 
 	//プレイヤーの初期化変数
 	Charactor player;
 	player.pos.x = 100.0f;
-	player.pos.y = 600.0f;
+	player.pos.y = 568.0f;
 	player.velocity = 0.0f;
 	player.gravity = 0.8f;
 	player.height = 64.0f;
@@ -174,6 +165,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	player.isAlive = true;
 	player.isHit = false;
 	player.hp = 5;
+	player.respawnTime = 0;
 
     for (int i = 0; i < 10; i++)
     {
@@ -196,6 +188,11 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	int playerFlameCount = 0;
 	int playerFlame = 0;
 
+	int playerGraph = Novice::LoadTexture("./Resources/Player.png");  // プレイヤー
+	int playerBulletGraph = Novice::LoadTexture("./Resources/yari.png"); // プレイヤーの弾
+
+	int playerScore = 0;
+
 	//プレイヤーの後ろにいる王様の初期化変数
  	Charactor king; 
 	king.pos.x = 30.0f;
@@ -205,63 +202,113 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 	king.height = 64.0f;
 	king.wide = 64.0f;
 	king.speed = 3.0f;
-	king.hp = 3;
 	king.isAlive = true;
 	king.isHit = false;
 
-	Charactor walkingEnemy[5];
-	for (int i = 0; i < 5; i++)//地面を歩く敵
+	int kingGraph = Novice::LoadTexture("./Resources/king.png"); // 王様
+
+	//地面を歩く敵
+	Charactor walkingEnemy[2];
+	for (int i = 0; i < 2; i++)
 	{
 		walkingEnemy[i].pos.x = 1290.0f;
-		walkingEnemy[i].pos.y = 600.0f;
+		walkingEnemy[i].pos.y = 500.0f;
 		walkingEnemy[i].wide = 64.0f;
 		walkingEnemy[i].height = 64.0f;
 		walkingEnemy[i].radius = 32.0f;
 		walkingEnemy[i].speed = 2.0f;
-		walkingEnemy[i].hp = 1;
 		walkingEnemy[i].isAlive = false;
 		walkingEnemy[i].isHit = false;
+		walkingEnemy[i].isSmash = false;
 		walkingEnemy[i].respawnTime = 0;
 		walkingEnemy[i].flameCount = 0;
 		walkingEnemy[i].flame = 0;
 	}
-	
-	Box walkingBox[5];
-	for (int i = 0; i < 5; i++)
+
+	Charactor smashWalkEnemy[2];
+	for (int i = 0; i < 2; i++)
+	{
+		smashWalkEnemy[i].flame = 0;
+		smashWalkEnemy[i].flameCount = 0;
+	}
+
+	Box walkingBox[2];
+	for (int i = 0; i < 2; i++)
 	{
 		walkingBox[i].rightLine.x = 0;
 		walkingBox[i].rightLine.y = 0;
 		walkingBox[i].leftLine.x = 0;
 		walkingBox[i].leftLine.y = 0;
-	}
+	}	
+	
+	int walkingEnemyAppearanceTime = 0;
 
-	Charactor flyingEnemy[5];
-	for (int i = 0; i < 5; i++)
+	int warkingEnemyGraph = Novice::LoadTexture("./Resources/walkingEnemy.png"); // 歩いてる敵	 
+	int warkingEnemySmashGraph = Novice::LoadTexture("./Resources/walkingEnemySmash.png"); // 踏みつぶした 
+	
+
+	//空を飛ぶ敵
+	Charactor flyingEnemy[2];
+	for (int i = 0; i < 2; i++)
 	{
-		flyingEnemy[i].pos.x = 400.0f;
-		flyingEnemy[i].pos.y = 400.0f;
+		flyingEnemy[i].pos.x = 1300.0f;
+		flyingEnemy[i].pos.y = 0.0f;
+		flyingEnemy[i].speed = 3.0f;
 		flyingEnemy[i].isAlive = false;
 		flyingEnemy[i].radius = 32.0f;
 		flyingEnemy[i].wide = 64.0f;
 		flyingEnemy[i].height = 64.0f;
-		flyingEnemy[i].hp = 1;
 		flyingEnemy[i].isHit = false;
 		flyingEnemy[i].respawnTime = 0;
 		flyingEnemy[i].flameCount = 0;
 		flyingEnemy[i].flame = 0;
 	}
 
-	float backGraundPosX = 0.0f;
+	Bullet flyingBullet[2];
+	for (int i = 0; i < 2; i++)
+	{
+		flyingBullet[i].isBullet = false;
+		flyingBullet[i].pos.x = 0.0f;
+		flyingBullet[i].pos.y = 0.0f;
+		flyingBullet[i].height = 64.0f;
+		flyingBullet[i].wide = 64.0f;
+	}
+	
 
-#pragma endregion 変数の初期化
 
+	int flyingEnemyAppearanceTime = 0;
+
+	int flyingEnemyGraph = Novice::LoadTexture("./Resources/flyingEnemy.png"); // 飛んでいる敵
+	int flyingEggGraph = Novice::LoadTexture("./Resources/Egg.png");
+
+	//敵が生きていないときのグラグ　
+	bool allEnemyIsAlve = false;
+
+	//画面　切り替え
 	enum MAPCHANGE
 	{
 		TITLE,
-		STAGE1,
-		STAGE2,
-		STAGE3,
+		GAMEPLAY,
+		GAMECLEAR,
+		GAMEEND,
 	};
+
+	MAPCHANGE scene = TITLE;
+
+	float backGraundPosX = 0.0f;
+
+	int groundGraph = Novice::LoadTexture("./Resources/ground.png"); //地面
+	int backGroundGraph = Novice::LoadTexture("./Resources/forestBackGround.png"); // 背景
+	int gameTitleGraph = Novice::LoadTexture("./Resources/title.png"); // タイトル 
+	int gameClearGraph = Novice::LoadTexture("./Resources/Crear.png"); // ゲームクリア
+	int gameoverGraph = Novice::LoadTexture("./Resources/Game_Over.png"); // ゲームオーバー
+
+	unsigned int randam = static_cast<int>(time(nullptr));
+	srand(randam);
+	
+#pragma endregion 変数の初期化
+
+	
 
 	// ウィンドウの×ボタンが押されるまでループ
 	while (Novice::ProcessMessage() == 0) {
@@ -275,188 +322,329 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		///
 		/// ↓更新処理ここから
 		/// 
+
+		switch (scene)
+		{
+		case TITLE:
+
 			
-		
-		
 
-		// スペースキーが押されたらジャンプ
-		if (keys[DIK_SPACE] && !preKeys[DIK_SPACE])
-		{
-			Jump(player);
-		}		
-
-		//次の弾が発射されるまでのクールタイム
-		if (player.shotCoolTime >= 0)
-		{
-			player.shotCoolTime--;
-		}
-		
-		if (player.isJumping) //jumpしているときの処理
-		{
-			player.canShotTime++;
-
-			if (player.canShotTime >= 10)
+			if (keys[DIK_SPACE] && !preKeys[DIK_SPACE])
 			{
-				player.isCanShot = true;
+				scene = GAMEPLAY;
+			}
+			break;
+
+		case GAMEPLAY:
+
+			// スペースキーが押されたらジャンプ
+			if (keys[DIK_SPACE] && !preKeys[DIK_SPACE])
+			{
+				Jump(player);
+			}
+
+			//次の弾が発射されるまでのクールタイム
+			if (player.shotCoolTime >= 0)
+			{
+				player.shotCoolTime--;
+			}
+
+			if (player.isJumping) //jumpしているときの処理
+			{
+				player.canShotTime++;
+
+				if (player.canShotTime >= 10)
+				{
+					player.isCanShot = true;
+				}
+				else
+				{
+					player.isCanShot = false;
+				}
 			}
 			else
 			{
-				player.isCanShot = false;
+				player.canShotTime = 0;
 			}
-		}
-		else
-		{
-			player.canShotTime = 0;
-		}
-
-		// デバッグ用=============================//
-		if (keys[DIK_W])
-		{
-			player.pos.y -= 2.0f;
-		}
-
-		if (keys[DIK_S])
-		{
-			player.pos.y += 2.0f;
-		}
-		//=====================================//
-
-		if (player.isCanShot) //弾が発射できるようになった時
-		{
-			if (player.shotCoolTime <= 0)
+					
+			//弾が発射できるようになった時
+			if (player.isCanShot) 
 			{
-				if (keys[DIK_SPACE])
+				if (player.shotCoolTime <= 0)
 				{
-					//弾の描画
-					BulletShot(player);
+					if (keys[DIK_SPACE])
+					{
+						//弾の描画
+						BulletShot(player);
+					}
 				}
 			}
-		}
-		
-		//弾の描画後の移動
-		BulletMove();
 
-		//場外に出たら弾が撃てるようになる
-		for (int i = 0; i < 10; i++)
-		{
-			if (playerBullet[i].pos.x >= 1280)
-			{
-				playerBullet[i].isBullet = false;
-			}
-		}
+			//弾の描画後の移動
+			BulletMove();
 
-		for (int i = 0; i < 10; i++)  //弾と敵の当たり判定
-		{			
-			if (walkingEnemy[0].isAlive)
+			//場外に出たら弾が撃てるようになる
+			for (int i = 0; i < 10; i++)
 			{
-				if (playerBullet[i].pos.x - 32.0f <= walkingEnemy[0].pos.x + 32.0f &&
-					walkingEnemy[0].pos.x - 32.0f <= playerBullet[i].pos.x + 32.0f &&
-					playerBullet[i].pos.y - 2.0f <= walkingEnemy[0].pos.y + 32.0f &&
-					walkingEnemy[0].pos.y - 32.0f <= playerBullet[i].pos.y + 5.0f )
+				if (playerBullet[i].pos.x >= 1280)
 				{
 					playerBullet[i].isBullet = false;
-					walkingEnemy[0].isAlive = false;
-					walkingEnemy[0].isHit = true;
+				}
+			}
+
+			//敵の出現
+
+			for (int i = 0; i < 2; i++) // 歩く敵
+			{
+				if (!walkingEnemy[i].isAlive)
+				{
+					walkingEnemyAppearanceTime++;
+				}
+
+				if (walkingEnemyAppearanceTime >= 200)
+				{
+					walkingEnemy[i].isAlive = true;
+					walkingEnemy[i].pos.x = 1300.0f;
+					walkingEnemy[i].pos.y = 568.0f;
+					walkingEnemyAppearanceTime = 0;
+					break;
+				}
+			}
+
+
+			for (int i = 0; i < 2; i++) // 空を飛ぶ敵
+			{
+				if (!flyingEnemy[i].isAlive)
+				{
+					flyingEnemyAppearanceTime++;
+				}
+
+				if (flyingEnemyAppearanceTime >= 150)
+				{
+					flyingEnemy[i].isAlive = true;
+					flyingEnemy[i].pos.x = 1300.0f;
+					flyingEnemy[i].pos.y = static_cast<float>(rand() % 110 + 348);
+					flyingEnemyAppearanceTime = 0;
+					break;
+				}
+			}
+
+			// 敵の移動処理
+
+			// 歩いてる敵		
+			for (int i = 0; i < 2; i++)
+			{
+				if (walkingEnemy[i].isAlive)
+				{
+					walkingEnemy[i].pos.x -= walkingEnemy[i].speed;
+				}
+			}
+			
+			// 飛んでる敵
+			for (int i = 0; i < 2; i++)
+			{
+				if (flyingEnemy[i].isAlive)
+				{
+					flyingEnemy[i].pos.x -= flyingEnemy[i].speed;
+
+					if (flyingEnemy[i].pos.x <= player.pos.x && flyingEnemy[i].pos.x >= player.pos.x - 20 && !flyingBullet[i].isBullet)
+					{
+						flyingBullet[i].isBullet = true;
+						flyingBullet[i].pos.x = flyingEnemy[i].pos.x;
+						flyingBullet[i].pos.y = flyingEnemy[i].pos.y;
+						break;
+					}
+				}
+			}
+			
+			for (int i = 0; i < 2; i++)
+			{
+				if (flyingBullet[i].isBullet)
+				{
+					flyingBullet[i].pos.y += 5.0f;
+				}
+			}
+			
+
+			//弾と敵の当たり判定
+			for (int i = 0; i < 10; i++) 
+			{
+				for (int j = 0; j < 2; j++)
+				{
+					if (walkingEnemy[j].isAlive && playerBullet[i].isBullet)
+					{
+						if (playerBullet[i].pos.x - 32.0f <= walkingEnemy[j].pos.x + 32.0f &&
+							walkingEnemy[j].pos.x - 32.0f <= playerBullet[i].pos.x + 32.0f &&
+							playerBullet[i].pos.y - 2.0f <= walkingEnemy[j].pos.y + 32.0f &&
+							walkingEnemy[j].pos.y - 32.0f <= playerBullet[i].pos.y + 5.0f)
+						{
+							playerBullet[i].isBullet = false;
+							walkingEnemy[j].isAlive = false;
+							playerScore += 1;
+						}
+					}
+				}
+				
+				for (int j = 0; j < 2; j++)
+				{
+					if (flyingEnemy[i].isAlive && playerBullet[i].isBullet)
+					{
+						if (playerBullet[i].pos.x - 32.0f <= flyingEnemy[j].pos.x + 32.0f &&
+							flyingEnemy[j].pos.x - 32.0f <= playerBullet[i].pos.x + 32.0f &&
+							playerBullet[i].pos.y - 2.0f <= flyingEnemy[j].pos.y + 32.0f &&
+							flyingEnemy[j].pos.y - 32.0f <= playerBullet[i].pos.y + 5.0f)
+						{
+							playerBullet[i].isBullet = false;
+							flyingEnemy[j].isAlive = false;
+							playerScore += 1;
+						}
+					}				
+				}				
+			}
+
+			// 踏みつけた時の処理
+
+			playerBox.rightLine.x = player.pos.x + player.wide / 2;
+			playerBox.rightLine.y = player.pos.y - player.height / 2;
+			playerBox.leftLine.x = player.pos.x - player.wide / 2;
+			playerBox.leftLine.y = player.pos.y + player.wide / 2;
+
+			for (int i = 0; i < 2; i++)
+			{
+				walkingBox[i].rightLine.x = walkingEnemy[i].pos.x + walkingEnemy[i].wide / 2;
+				walkingBox[i].rightLine.y = walkingEnemy[i].pos.y - walkingEnemy[i].height / 2;
+				walkingBox[i].leftLine.x = walkingEnemy[i].pos.x - walkingEnemy[i].wide / 2;
+				walkingBox[i].leftLine.y = walkingEnemy[i].pos.y + walkingEnemy[i].height / 2;
+				
+				if (player.isJumping && walkingEnemy[i].isAlive && walkingBox[i].leftLine.x < playerBox.rightLine.x && walkingBox[i].rightLine.x > playerBox.leftLine.x && walkingBox[i].rightLine.y < playerBox.leftLine.y && walkingBox[i].leftLine.y > playerBox.rightLine.y)
+				{
+					playerScore += 1;
+					walkingEnemy[i].isSmash = true;
+					walkingEnemy[i].isAlive = false;
+				}			
+				
+				if (walkingEnemy[i].isAlive && walkingBox[i].leftLine.x < playerBox.rightLine.x && walkingBox[i].rightLine.x > playerBox.leftLine.x && player.isAlive && !player.isJumping)
+				{
+					player.hp -= 1;
+					player.isAlive = false;
+				}
+			}
+
+			//tamgaonoatari
+			for (int i = 0; i < 2; i++)
+			{
+				if (flyingBullet[i].pos.y >= 568 && player.isAlive && flyingBullet[i].isBullet && flyingEnemy[i].isAlive )
+				{
+					player.isAlive = false;
+					player.hp -= 1;
+					flyingBullet[i].isBullet = false;
+				}
+			}
+
+			if (!player.isAlive)
+			{
+				player.respawnTime++;
+			}
+
+			if (player.respawnTime >= 30)
+			{
+				player.isAlive = true;
+			}
+	
+			// 重力の適用
+			ApplyGravity(player);
+
+			//アニメーション置き場
+			MoveAnimation(playerFlameCount, playerFlame, 6);
+
+			for (int i = 0; i < 2; i++)
+			{
+				if (flyingEnemy[i].isAlive)
+				{
+					MoveAnimation(flyingEnemy[i].flameCount, flyingEnemy[i].flame, 4);
+				}
+
+				if (flyingEnemy[i].pos.x <= 0)
+				{
+					flyingEnemy[i].isAlive = false;
+				}
+			}
+			
+			for (int i = 0; i < 2; i++)
+			{
+				if (walkingEnemy[i].isAlive)
+				{
+					MoveAnimation(walkingEnemy[i].flameCount, walkingEnemy[i].flame, 4);
+				}
+
+				if (walkingEnemy[i].pos.x <= 0)
+				{
+					walkingEnemy[i].isAlive = false;
+				}
+			}
+		
+			for (int i = 0; i < 2; i++)
+			{
+				if (walkingEnemy[i].isSmash)
+				{
+					MoveAnimation(smashWalkEnemy[i].flameCount, smashWalkEnemy[i].flame, 4);
+
+					Novice::ScreenPrintf(10, 20 * i, "%d", smashWalkEnemy[i].flameCount);
+					Novice::ScreenPrintf(40, 20 * i, "%d", smashWalkEnemy[i].flame);
+				}
+
+				if (smashWalkEnemy[i].flameCount >= 39)
+				{
+					walkingEnemy[i].isSmash = false;
 				}
 			}
 
 			
+			backGraundPosX --;
+			
 
-			if (playerBullet[i].pos.x - 32.0f <= flyingEnemy[0].pos.x + 32.0f &&
-				flyingEnemy[0].pos.x - 32.0f <= playerBullet[i].pos.x + 32.0f &&
-				playerBullet[i].pos.y - 2.0f <= flyingEnemy[0].pos.y + 32.0f &&
-				flyingEnemy[0].pos.y - 32.0f <= playerBullet[i].pos.y + 5.0f)
+			if (backGraundPosX <= -1280)
 			{
-				playerBullet[i].isBullet = false;
-				flyingEnemy[0].isAlive = false;
-				flyingEnemy[0].isHit = true;
-			}		
-		}
+				backGraundPosX = 0;
+			}
 
-		// 踏みつけた時の処理
+			if (playerScore >= 40)
+			{
+				playerScore = 0;
+				player.hp = 5;
+				scene = GAMECLEAR;
+			}
+
+ 			if (player.hp <= 0)
+			{
+				playerScore = 0;
+				player.hp = 5;
+				scene = GAMEEND;
+			}
+
+			Novice::ScreenPrintf(10, 10, "%d", player.hp);
+
+			break;
+		case GAMECLEAR:
+			
+			if (keys[DIK_SPACE] && !preKeys[DIK_SPACE])
+			{
+				scene = TITLE;
+			}
+
+
+			break;
+		case GAMEEND:
 		
-		if (walkingBox[0].rightLine.y < playerBox.leftLine.y && walkingBox[0].leftLine.y > playerBox.rightLine.y && walkingBox[0].rightLine.x > playerBox.leftLine.x && walkingBox[0].leftLine.x < playerBox.rightLine.x && walkingEnemy[0].isAlive)
-		{
-			walkingEnemy[0].isAlive = false;
-		}
-		else
-		{
-			walkingEnemy[0].isAlive = true;
-		}
-		
-
-		// 敵のリスポーン処理
-		if (!walkingEnemy[0].isAlive)
-		{
-			walkingEnemy[0].respawnTime++;
-		}
-
-		if (walkingEnemy[0].respawnTime >= 100)
-		{
-			walkingEnemy[0].isAlive = true;
-		}
-
-		if (!flyingEnemy[0].isAlive)
-		{
-			flyingEnemy[0].respawnTime++;
-		}
-
-		if (flyingEnemy[0].respawnTime >= 130)
-		{
-			flyingEnemy[0].isAlive = true;
-		}
-
-        //================================================================//
-
-		// 敵の移動処理
-		
-		// 歩いてる敵		
-		if (walkingEnemy[0].isAlive)
-		{
-			walkingEnemy[0].pos.x -= walkingEnemy[0].speed;
-		}
-	
-		// 飛んでる敵
-		if (flyingEnemy[0].isAlive)
-		{
-			flyingEnemy[0].pos.x -= flyingEnemy[0].speed;
-		}
-	
-//=======================================================================//
+			if (keys[DIK_SPACE] && !preKeys[DIK_SPACE])
+			{
+				scene = TITLE;
+			}
 
 
-		
-
-		
-
-		
-
-		// 重力の適用
-		ApplyGravity(player);
-
-		//アニメーション置き場
-		MoveAnimation(playerFlameCount, playerFlame, 6);
-
-		
-		if (flyingEnemy[0].isAlive)
-		{
-			MoveAnimation(flyingEnemy[0].flameCount, flyingEnemy[0].flame, 4);
-		}
-
-		if (walkingEnemy[0].isAlive)
-		{
-			MoveAnimation(walkingEnemy[0].flameCount, walkingEnemy[0].flame, 4);
-		}
-		
-		if (!walkingEnemy[0].isAlive && !flyingEnemy[0].isAlive)
-		{
-			backGraundPosX -= 0.1f;
-		}
-
-
-		if (backGraundPosX <= -1280)
-		{
-			backGraundPosX = 0;
+			break;
+		default:
+			break;
 		}
 
 		///
@@ -467,57 +655,87 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int) {
 		/// ↓描画処理ここから
 		/// 
 		
-		
-		Novice::DrawSprite((int)backGraundPosX, 0, backGroundGraph, 1, 1, 0.0f, WHITE);
-		Novice::DrawSprite((int)backGraundPosX + 1280, 0, backGroundGraph, 1, 1, 0.0f, WHITE);
-
-		Novice::DrawSprite(0, 0, groundGraph, 1, 1, 0.0f, WHITE);
-
-
-		
-		if (!flyingEnemy[0].isAlive && !walkingEnemy[0].isAlive)
+		switch (scene)
 		{
-			Novice::DrawSpriteRect(int(player.pos.x - player.wide / 2), int(player.pos.y - player.height / 2), playerFlame * 64, 0, 64, 64, playerGraph, 1.0f / 6.0f, 1.0f, 0.0f, WHITE);
-		}else
-		{
-			Novice::DrawSpriteRect(int(player.pos.x - player.wide / 2), int(player.pos.y - player.height / 2), 0, 0, 64, 64, playerGraph, 1.0f / 6.0f, 1.0f, 0.0f, WHITE);
-		}
+		case TITLE:
+
+			Novice::DrawSprite(0, 0, gameTitleGraph, 1, 1, 0.0f, WHITE);
+
+			break;
+		case GAMEPLAY:
+
+			Novice::DrawSprite((int)backGraundPosX, 0, backGroundGraph, 1, 1, 0.0f, WHITE);
+			Novice::DrawSprite((int)backGraundPosX + 1280, 0, backGroundGraph, 1, 1, 0.0f, WHITE);
+
+			Novice::DrawSprite(0, 0, groundGraph, 1, 1, 0.0f, WHITE);			
+
+			if (!allEnemyIsAlve && player.isAlive)
+			{
+				Novice::DrawSpriteRect(int(player.pos.x - player.wide / 2), int(player.pos.y - player.height / 2), playerFlame * 64, 0, 64, 64, playerGraph, 1.0f / 6.0f, 1.0f, 0.0f, WHITE);
+			}
+			else if (player.isAlive )
+			{
+				Novice::DrawSpriteRect(int(player.pos.x - player.wide / 2), int(player.pos.y - player.height / 2), 0, 0, 64, 64, playerGraph, 1.0f / 6.0f, 1.0f, 0.0f, WHITE);
+			}
+				
+			if (king.isAlive)
+			{
+				Novice::DrawSprite(int(king.pos.x - king.wide / 2), int(king.pos.y - king.height / 2), kingGraph, 1, 1, 0.0f, WHITE);
+			}
+
+			for (int i = 0; i < 10; i++)
+			{
+				if (playerBullet[i].isBullet)
+				{
+					Novice::DrawSprite(int(playerBullet[i].pos.x - 32.0f), int(playerBullet[i].pos.y - 32.0f), playerBulletGraph, 1, 1, 0.0f, WHITE);
+				}
+			}
+
+			for (int i = 0; i < 2; i++)
+			{
+				if (flyingEnemy[i].isAlive)
+				{
+					Novice::DrawSpriteRect(int(flyingEnemy[i].pos.x - flyingEnemy[i].radius), int(flyingEnemy[i].pos.y - flyingEnemy[i].radius), flyingEnemy[i].flame * 64, 0, 64, 64, flyingEnemyGraph, 1.0f / 4.0f, 1.0f, 0.0f, WHITE);
+				}
+
+			}
+
+			for (int i = 0; i < 2; i++)
+			{
+				if (walkingEnemy[i].isAlive)
+				{
+					Novice::DrawSpriteRect(int(walkingEnemy[i].pos.x - walkingEnemy[i].wide /2), int(walkingEnemy[i].pos.y - walkingEnemy[i].height /  2), walkingEnemy[i].flame * 64, 0, 64, 64, warkingEnemyGraph, 1.0f / 4.0f, 1.0f, 0.0f, WHITE);
+				}
+				else if (walkingEnemy[i].isSmash && !walkingEnemy[i].isAlive)
+				{
+					Novice::DrawSpriteRect(int(walkingEnemy[i].pos.x - walkingEnemy[i].radius), int(walkingEnemy[i].pos.y - 64.0f / 2), smashWalkEnemy[i].flame * 64, 0, 64, 64, warkingEnemySmashGraph, 1.0f / 4.0f, 1.0f, 0.0f, WHITE);
+				}			
+			}
+
+			for (int i = 0; i < 2; i++)
+			{
+				if (flyingBullet[i].isBullet)
+				{
+					Novice::DrawSprite(int(flyingBullet[i].pos.x - flyingBullet[i].wide / 2), int(flyingBullet[i].pos.y - flyingBullet[i].height / 2), flyingEggGraph, 1, 1, 0.0f, WHITE);
+				}
+			}
 			
 
-		if (king.isAlive)
-		{
-			Novice::DrawSprite(int(king.pos.x - king.wide / 2), int(king.pos.y - king.height / 2), kingGraph, 1, 1, 0.0f, WHITE);
+			break;
+		case GAMECLEAR:
+
+			Novice::DrawSprite(0, 0, gameClearGraph, 1, 1, 0.0f, WHITE);
+
+			break;
+		case GAMEEND:
+
+			Novice::DrawSprite(0, 0, gameoverGraph, 1, 1, 0.0f, WHITE);
+
+			break;
+		default:
+			break;
 		}
 
-        for (int i = 0; i < 10; i++)
-        {
-            if (playerBullet[i].isBullet)
-            {
-				Novice::DrawSprite(int(playerBullet[i].pos.x - 32.0f), int(playerBullet[i].pos.y - 32.0f), playerBulletGraph, 1, 1, 0.0f, WHITE);
-            }
-			Novice::DrawBox(int(playerBullet[i].pos.x - 32.0f), int(playerBullet[i].pos.y - 2), 64, 5, 0.0f, RED, kFillModeWireFrame);
-
-        }
-
-		for (int i = 0; i < 5; i++)
-		{
-			if (flyingEnemy[i].isAlive)
-			{
-				Novice::DrawSpriteRect(int(flyingEnemy[i].pos.x - flyingEnemy[i].radius), int(flyingEnemy[i].pos.y - flyingEnemy[i].radius), flyingEnemy[i].flame * 64, 0, 64, 64, flyingEnemyGraph, 1.0f / 4.0f, 1.0f, 0.0f, WHITE);
-			}
-		}
-		
-		for (int i = 0; i < 5; i++)
-		{
-			if (walkingEnemy[i].isAlive)
-			{
-				Novice::DrawSpriteRect(int(walkingEnemy[i].pos.x - walkingEnemy[i].radius), int(walkingEnemy[i].pos.y - 64.0f ), walkingEnemy[i].flame * 64, 0, 64, 64, warkingEnemyGraph, 1.0f / 4.0f, 1.0f, 0.0f, WHITE);
-			}
-
-			Novice::ScreenPrintf(10, 10 * i, "%d", walkingEnemy[i].isAlive);
-
-			Novice::DrawBox(int(walkingEnemy[i].pos.x - 32.0f), int(walkingEnemy[i].pos.y - 64.0f), 64, 64, 0.0f, RED, kFillModeWireFrame);
-		}
 
 		
 		
